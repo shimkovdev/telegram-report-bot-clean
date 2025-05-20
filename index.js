@@ -178,7 +178,7 @@ bot.action('CONFIRM', async ctx => {
     .map(k => {
       const val = data[k];
       const value = Array.isArray(val) ? val.join(', ') : val || '-';
-      return `*${QUESTIONS[k]}*: ${value}`;
+      return `*${escapeMarkdown(QUESTIONS[k])}*: ${escapeMarkdown(value)}`;
     }).join('\n');
 
   const finalText = `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`;
@@ -227,4 +227,9 @@ try {
 } catch (e) {
   console.error('Error reading credential file:', e.message);
 }
+
+function escapeMarkdown(text = '') {
+  return text.replace(/([_*\[\]()~`>#+=|{}.!\\])/g, '\\$1');
+}
+
 
