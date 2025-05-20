@@ -20,34 +20,38 @@ bot.use((ctx, next) => {
 });
 
 const steps = [
-  'managers','type','object','address','source','client',
-  'contractor','contacts','report','structures','timeline','next','photo'
+  'managers', 'type', 'object', 'address', 'source', 'client',
+  'contractor', 'contacts', 'report', 'structures', 'timeline', 'next', 'photo'
 ];
 
 const MANAGERS = ['@alice', '@bob', '@charlie'];
 
 const QUESTIONS = {
-  managers: '👥 Менеджеры',
+  managers: '👤 Менеджеры',
   type: '📌 Тип выезда',
   object: '🏗 Объект',
   address: '📍 Адрес',
-  source: '🔗 Источник',
+  source: '🔎 Источник',
   client: '👤 Заказчик',
   contractor: '🏢 Генподрядчик',
   contacts: '📞 Контакты',
   report: '📝 Отчет',
-  structures: '🧱 Конструкции',
+  structures: '🏗 Конструкции',
   timeline: '⏳ Сроки',
-  nextAction: '➡️ Дальнейшие действия',
-  photoLink: '📷 Фото'
+  next: '🧭 Дальнейшие действия',
+  photo: '📎 Фото/файл',
 };
 
 bot.start(ctx => {
   ctx.session.data = {};
   ctx.session.step = 0;
-  ctx.reply('Добро пожаловать! Нажмите:', Markup.inlineKeyboard([
-    [Markup.button.callback('Добавить отчет', 'NEXT')]
-  ]));
+  ctx.reply(
+    '👋 *Добро пожаловать!*\n\nЧтобы добавить отчет, нажмите кнопку ниже.',
+    Markup.inlineKeyboard([
+      [Markup.button.callback('➕ Добавить отчет', 'NEXT')]
+    ]),
+    { parse_mode: 'Markdown' }
+  );
 });
 
 bot.action('NEXT', ctx => {
@@ -55,39 +59,40 @@ bot.action('NEXT', ctx => {
   askStep(ctx);
 });
 
+function getManagerKeyboard(selected = []) {
+  return Markup.inlineKeyboard([
+    ...MANAGERS.map(m => [
+      Markup.button.callback(`${selected.includes(m) ? '✅' : '❌'} ${m}`, m)
+    ]),
+    [Markup.button.callback('✅ Готово', 'DONE_MAN')]
+  ]);
+}
+
 function askStep(ctx) {
   const idx = ctx.session.step;
   const key = steps[idx];
 
   if (key === 'managers') {
-    return ctx.reply('Выберите менеджеров:', Markup.inlineKeyboard([
-      ...MANAGERS.map(m => [Markup.button.callback(m, m)]),
-      [Markup.button.callback('Готово', 'DONE_MAN')]
-    ]));
+    return ctx.reply('👤 Выберите менеджеров:', getManagerKeyboard(ctx.session.data.managers || []));
   }
 
-  if (key === 'type') return ctx.reply('Тип выезда:', Markup.inlineKeyboard([
-    Markup.button.callback('✅ Результативный','TYPE_success'),
-    Markup.button.callback('❌ Без результата','TYPE_no'),
-    Markup.button.callback('📂 Неактуальный','TYPE_old')
+  if (key === 'type') return ctx.reply('📌 Тип выезда:', Markup.inlineKeyboard([
+    Markup.button.callback('✅ Результативный', 'TYPE_success'),
+    Markup.button.callback('❌ Без результата', 'TYPE_no'),
+    Markup.button.callback('📂 Неактуальный', 'TYPE_old')
   ]));
 
-  if (key === 'next') return ctx.reply('Дальше:', Markup.inlineKeyboard([
-    Markup.button.callback('🚀 Создать лид','NEXT_lead'),
-    Markup.button.callback('⏸ В Менопаузу','NEXT_pause')
+  if (key === 'next') return ctx.reply('🧭 Дальше:', Markup.inlineKeyboard([
+    Markup.button.callback('🟢 Создать лид', 'NEXT_lead'),
+    Markup.button.callback('⏸ Паузу', 'NEXT_pause')
   ]));
 
-  if (key === 'photo') return ctx.reply('Пришлите фото или файл:');
+  if (key === 'photo') return ctx.reply('📎 Пришлите фото или файл:');
 
-  const questionsText = {
-    object:'Объект:', address:'Адрес:', source:'Источник:', client:'Заказчик:',
-    contractor:'Генподрядчик:', contacts:'Контакты:', report:'Отчет:',
-    structures:'Конструкции:', timeline:'Сроки:'
-  };
-
-  return ctx.reply(questionsText[key]);
+  return ctx.reply(QUESTIONS[key] + ':');
 }
 
+// Менеджеры
 bot.action(/@.+/, ctx => {
   const sel = ctx.match[0];
   const managers = ctx.session.data.managers || [];
@@ -96,6 +101,7 @@ bot.action(/@.+/, ctx => {
   else managers.push(sel);
   ctx.session.data.managers = managers;
   ctx.answerCbQuery(`Менеджеры: ${managers.join(', ')}`);
+  ctx.editMessageReplyMarkup(getManagerKeyboard(managers).reply_markup);
 });
 
 bot.action('DONE_MAN', ctx => {
@@ -104,13 +110,20 @@ bot.action('DONE_MAN', ctx => {
 });
 
 bot.action(/TYPE_.+/, ctx => {
-  ctx.session.data.type = ctx.match[0].replace('TYPE_', '');
+  ctx.session.data.type = {
+    TYPE_success: 'Результативный',
+    TYPE_no: 'Без результата',
+    TYPE_old: 'Неактуальный'
+  }[ctx.match[0]];
   ctx.answerCbQuery();
   next(ctx);
 });
 
 bot.action(/NEXT_.+/, ctx => {
-  ctx.session.data.nextAction = ctx.match[0].replace('NEXT_', '');
+  ctx.session.data.next = {
+    NEXT_lead: 'Создать лид',
+    NEXT_pause: 'Паузу'
+  }[ctx.match[0]];
   ctx.answerCbQuery();
   next(ctx);
 });
@@ -126,7 +139,7 @@ bot.on(['text', 'photo', 'document'], async ctx => {
   if (key === 'photo') {
     const f = ctx.message.photo ? ctx.message.photo.pop() : ctx.message.document;
     const fileLink = await uploadFile(await ctx.telegram.getFile(f.file_id));
-    ctx.session.data.photoLink = fileLink;
+    ctx.session.data.photo = fileLink;
   } else {
     ctx.session.data[key] = ctx.message.text;
   }
@@ -134,38 +147,43 @@ bot.on(['text', 'photo', 'document'], async ctx => {
   ctx.session.step++;
   if (ctx.session.step < steps.length) return askStep(ctx);
 
-  const summary = Object.entries(ctx.session.data)
-    .filter(([key]) => QUESTIONS[key])
-    .map(([key, value]) =>
-      `*${QUESTIONS[key]}*: ${Array.isArray(value) ? value.join(', ') : value}`
-    ).join('\n');
+  // Подтверждение
+  const summary = steps.map(k => {
+    const val = ctx.session.data[k];
+    const value = Array.isArray(val) ? val.join(', ') : val || '-';
+    return `*${QUESTIONS[k]}*: ${value}`;
+  }).join('\n');
 
-  ctx.replyWithMarkdown(`Проверьте информацию перед отправкой:\n\n${summary}`, Markup.inlineKeyboard([
-    Markup.button.callback('✅ Подтвердить', 'CONFIRM'),
-    Markup.button.callback('❌ Отмена', 'CANCEL')
-  ]));
+  ctx.replyWithMarkdown(
+    `📋 *Проверьте данные перед отправкой:*\n\n${summary}`,
+    Markup.inlineKeyboard([
+      [Markup.button.callback('✅ Подтвердить', 'CONFIRM')],
+      [Markup.button.callback('❌ Отмена', 'CANCEL')]
+    ])
+  );
 });
 
 bot.action('CONFIRM', async ctx => {
   const data = ctx.session.data;
-  const row = [ctx.from.username, ...steps.map(k =>
-    Array.isArray(data[k]) ? data[k].join(', ') : data[k]
-  )];
 
+  const row = [
+    ctx.from.username,
+    ...steps.map(k => Array.isArray(data[k]) ? data[k].join(', ') : data[k])
+  ];
   await appendRow(row);
 
-  const reportText = Object.entries(data)
-    .filter(([key]) => QUESTIONS[key] && key !== 'photoLink')
-    .map(([key, value]) =>
-      `*${QUESTIONS[key]}*: ${Array.isArray(value) ? value.join(', ') : value}`
-    ).join('\n');
+  const summary = steps.map(k => {
+    const val = data[k];
+    const value = Array.isArray(val) ? val.join(', ') : val || '-';
+    return `*${QUESTIONS[k]}*: ${value}`;
+  }).join('\n');
 
-  if (data.photoLink) {
+  if (data.photo) {
     await ctx.telegram.sendPhoto(
       TARGET_CHAT_ID,
-      data.photoLink,
+      data.photo,
       {
-        caption: `🆕 Новый отчет от @${ctx.from.username}\n\n${reportText}`,
+        caption: `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
         parse_mode: 'Markdown',
         message_thread_id: +TARGET_TOPIC_ID
       }
@@ -173,7 +191,7 @@ bot.action('CONFIRM', async ctx => {
   } else {
     await ctx.telegram.sendMessage(
       TARGET_CHAT_ID,
-      `🆕 Новый отчет от @${ctx.from.username}\n\n${reportText}`,
+      `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
       {
         parse_mode: 'Markdown',
         message_thread_id: +TARGET_TOPIC_ID
@@ -181,10 +199,10 @@ bot.action('CONFIRM', async ctx => {
     );
   }
 
-  ctx.reply('Готово! ✅');
+  ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
 });
 
-bot.action('CANCEL', ctx => ctx.reply('Отмена ❌'));
+bot.action('CANCEL', ctx => ctx.reply('❌ Отправка отменена.'));
 
 app.post('/webhook', (req, res) => bot.handleUpdate(req.body, res));
 bot.telegram.setWebhook(WEBHOOK_URL);
@@ -197,3 +215,4 @@ try {
 } catch (e) {
   console.error('Error reading credential file:', e.message);
 }
+
