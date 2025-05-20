@@ -1,26 +1,42 @@
-const { Storage } = require('@google-cloud/storage');
+const { google } = require('googleapis');
+const axios = require('axios');
 const path = require('path');
 
-// Автоматически подтянет переменную GOOGLE_APPLICATION_CREDENTIALS
-const storage = new Storage();
-const bucketName = process.env.DRIVE_FOLDER_ID;
+const auth = new google.auth.GoogleAuth({
+  keyFile: 'gcp-credentials.json', // Путь к JSON-ключу сервисного аккаунта
+  scopes: ['https://www.googleapis.com/auth/drive']
+});
 
-// Загрузка файла и получение публичной ссылки
+const drive = google.drive({ version: 'v3', auth });
+
 async function uploadFile(file) {
-  // file.file_id и file.file_unique_id
-  const fileId = file.file_id;
   const ext = file.file_name ? path.extname(file.file_name) : '.jpg';
-  const destName = `${file.unique_id || fileId}${ext}`;
+  const fileName = `${file.file_unique_id || file.file_id}${ext}`;
+  const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
 
-  const buffer = await (await require('axios')({
-    url: `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`,
-    responseType: 'arraybuffer'
-  })).data;
+  const response = await axios.get(fileUrl, { responseType: 'stream' });
 
-  const fileUpload = storage.bucket(bucketName).file(destName);
-  await fileUpload.save(buffer, { resumable: false });
-  await fileUpload.makePublic();
-  return `https://storage.googleapis.com/${bucketName}/${destName}`;
+  const res = await drive.files.create({
+    requestBody: {
+      name: fileName,
+      parents: [process.env.DRIVE_FOLDER_ID]
+    },
+    media: {
+      mimeType: file.mime_type || 'image/jpeg',
+      body: response.data
+    }
+  });
+
+  // Делаем файл публичным
+  await drive.permissions.create({
+    fileId: res.data.id,
+    requestBody: {
+      role: 'reader',
+      type: 'anyone'
+    }
+  });
+
+  return `https://drive.google.com/file/d/${res.data.id}/view`;
 }
 
 module.exports = { uploadFile };
