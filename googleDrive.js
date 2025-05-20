@@ -3,7 +3,7 @@ const axios = require('axios');
 const path = require('path');
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  keyFile: path.join(process.cwd(), process.env.GOOGLE_APPLICATION_CREDENTIALS),
   scopes: ['https://www.googleapis.com/auth/drive']
 });
 
