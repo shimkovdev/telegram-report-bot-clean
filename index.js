@@ -8,6 +8,7 @@ const { BOT_TOKEN, WEBHOOK_URL, TARGET_CHAT_ID, TARGET_TOPIC_ID } = process.env;
 const bot = new Telegraf(BOT_TOKEN);
 const app = express();
 app.use(express.json());
+const { session } = require('telegraf');
 
 bot.use(session());
 const steps = [
