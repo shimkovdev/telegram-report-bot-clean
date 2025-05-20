@@ -3,7 +3,7 @@ const axios = require('axios');
 const path = require('path');
 
 const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS),
+  keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || './GOOGLE_APPLICATION_CREDENTIALS',
   scopes: ['https://www.googleapis.com/auth/drive']
 });
 
@@ -39,4 +39,5 @@ async function uploadFile(file) {
 }
 
 module.exports = { uploadFile };
+
 
