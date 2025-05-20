@@ -1,0 +1,34 @@
+{
+  "name": "telegram-report-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "telegraf": "^4.12.3",
+    "googleapis": "^115.0.0",
+    "@google-cloud/storage": "^6.9.0",
+    "dotenv": "^16.0.3"
+  },  
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shimkovdev/telegram-report-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shimkovdev/telegram-report-bot/issues"
+  },
+  "homepage": "https://github.com/shimkovdev/telegram-report-bot#readme",
+  "description": "",
+  "dependencies": {
+    "@google-cloud/storage": "^7.16.0",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "googleapis": "^148.0.0",
+    "telegraf": "^4.16.3"
+  }
+}
