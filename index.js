@@ -15,7 +15,7 @@ const steps = [
   'contractor','contacts','report','structures','timeline','next','photo'
 ];
 const MANAGERS = [ '@alice','@bob','@charlie' ];
-
+console.log('Google credentials file path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 bot.start(ctx => {
   ctx.session.data = {};
   ctx.session.step = 0;
