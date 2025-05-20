@@ -151,7 +151,7 @@ bot.on(['text', 'photo', 'document'], async ctx => {
   const summary = steps.map(k => {
     const val = ctx.session.data[k];
     const value = Array.isArray(val) ? val.join(', ') : val || '-';
-    return `*${QUESTIONS[k]}*: ${value}`;
+    return `*${escapeMarkdown(QUESTIONS[k])}*: ${escapeMarkdown(value)}`;
   }).join('\n');
 
   ctx.replyWithMarkdown(
