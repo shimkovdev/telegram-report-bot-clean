@@ -84,7 +84,7 @@ function askStep(ctx) {
 
   if (key === 'next') return ctx.reply('🧭 Дальше:', Markup.inlineKeyboard([
     Markup.button.callback('🟢 Создать лид', 'NEXT_lead'),
-    Markup.button.callback('⏸ Паузу', 'NEXT_pause')
+    Markup.button.callback('⏸ В Менопаузу', 'NEXT_pause')
   ]));
 
   if (key === 'photo') return ctx.reply('📎 Пришлите фото или файл:');
