@@ -15,7 +15,7 @@ const steps = [
   'contractor','contacts','report','structures','timeline','next','photo'
 ];
 const MANAGERS = [ '@alice','@bob','@charlie' ];
-console.log('Google credentials file path:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+
 bot.start(ctx => {
   ctx.session.data = {};
   ctx.session.step = 0;
@@ -105,3 +105,15 @@ bot.action('CANCEL',ctx=>ctx.reply('Отмена'));
 app.post('/webhook',(req,res)=>bot.handleUpdate(req.body, res));
 bot.telegram.setWebhook(WEBHOOK_URL);
 app.listen(process.env.PORT||3000,()=>console.log('Running'));
+
+const fs = require('fs');
+
+console.log('Path from env:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
+
+try {
+  const content = fs.readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8');
+  console.log('File content preview:', content.substring(0, 100));
+} catch (e) {
+  console.error('Error reading credential file:', e.message);
+}
+
