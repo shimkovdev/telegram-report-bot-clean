@@ -26,25 +26,20 @@ const steps = [
 
 const MANAGERS = ['@alice', '@bob', '@charlie'];
 
-const questions = {
-  managers: 'Менеджеры:',
-  type: 'Тип выезда:',
-  object: 'Объект:', address: 'Адрес:', source: 'Источник:',
-  client: 'Заказчик:', contractor: 'Генподрядчик:',
-  contacts: 'Контакты:', report: 'Отчет:',
-  structures: 'Конструкции:', timeline: 'Сроки:',
-  next: 'Дальше:', photo: 'Фото:'
-};
-
-const typeLabels = {
-  TYPE_success: 'Результативный',
-  TYPE_no: 'Без результата',
-  TYPE_old: 'Неактуальный'
-};
-
-const nextLabels = {
-  NEXT_lead: 'Создать лид',
-  NEXT_pause: 'Паузу'
+const QUESTIONS = {
+  managers: '👥 Менеджеры',
+  type: '📌 Тип выезда',
+  object: '🏗 Объект',
+  address: '📍 Адрес',
+  source: '🔗 Источник',
+  client: '👤 Заказчик',
+  contractor: '🏢 Генподрядчик',
+  contacts: '📞 Контакты',
+  report: '📝 Отчет',
+  structures: '🧱 Конструкции',
+  timeline: '⏳ Сроки',
+  nextAction: '➡️ Дальнейшие действия',
+  photoLink: '📷 Фото'
 };
 
 bot.start(ctx => {
@@ -72,19 +67,25 @@ function askStep(ctx) {
   }
 
   if (key === 'type') return ctx.reply('Тип выезда:', Markup.inlineKeyboard([
-    Markup.button.callback('Результативный','TYPE_success'),
-    Markup.button.callback('Без результата','TYPE_no'),
-    Markup.button.callback('Неактуальный','TYPE_old')
+    Markup.button.callback('✅ Результативный','TYPE_success'),
+    Markup.button.callback('❌ Без результата','TYPE_no'),
+    Markup.button.callback('📂 Неактуальный','TYPE_old')
   ]));
 
   if (key === 'next') return ctx.reply('Дальше:', Markup.inlineKeyboard([
-    Markup.button.callback('Создать лид','NEXT_lead'),
-    Markup.button.callback('Паузу','NEXT_pause')
+    Markup.button.callback('🚀 Создать лид','NEXT_lead'),
+    Markup.button.callback('⏸ Паузу','NEXT_pause')
   ]));
 
   if (key === 'photo') return ctx.reply('Пришлите фото или файл:');
 
-  return ctx.reply(questions[key]);
+  const questionsText = {
+    object:'Объект:', address:'Адрес:', source:'Источник:', client:'Заказчик:',
+    contractor:'Генподрядчик:', contacts:'Контакты:', report:'Отчет:',
+    structures:'Конструкции:', timeline:'Сроки:'
+  };
+
+  return ctx.reply(questionsText[key]);
 }
 
 bot.action(/@.+/, ctx => {
@@ -103,13 +104,13 @@ bot.action('DONE_MAN', ctx => {
 });
 
 bot.action(/TYPE_.+/, ctx => {
-  ctx.session.data.type = ctx.match[0];
+  ctx.session.data.type = ctx.match[0].replace('TYPE_', '');
   ctx.answerCbQuery();
   next(ctx);
 });
 
 bot.action(/NEXT_.+/, ctx => {
-  ctx.session.data.nextAction = ctx.match[0];
+  ctx.session.data.nextAction = ctx.match[0].replace('NEXT_', '');
   ctx.answerCbQuery();
   next(ctx);
 });
@@ -124,10 +125,8 @@ bot.on(['text', 'photo', 'document'], async ctx => {
 
   if (key === 'photo') {
     const f = ctx.message.photo ? ctx.message.photo.pop() : ctx.message.document;
-    const file = await ctx.telegram.getFile(f.file_id);
-    const fileLink = await uploadFile(file);
+    const fileLink = await uploadFile(await ctx.telegram.getFile(f.file_id));
     ctx.session.data.photoLink = fileLink;
-    ctx.session.data.photoId = f.file_id;
   } else {
     ctx.session.data[key] = ctx.message.text;
   }
@@ -135,53 +134,57 @@ bot.on(['text', 'photo', 'document'], async ctx => {
   ctx.session.step++;
   if (ctx.session.step < steps.length) return askStep(ctx);
 
-  const summary = steps.map(k => {
-    let val = ctx.session.data[k];
-    if (Array.isArray(val)) val = val.join(', ');
-    if (k === 'type') val = typeLabels[val] || val;
-    if (k === 'next') val = nextLabels[ctx.session.data.nextAction] || '';
-    if (k === 'photo') val = ctx.session.data.photoLink || '—';
-    return `*${questions[k]}* ${val}`;
-  }).join('\n');
+  const summary = Object.entries(ctx.session.data)
+    .filter(([key]) => QUESTIONS[key])
+    .map(([key, value]) =>
+      `*${QUESTIONS[key]}*: ${Array.isArray(value) ? value.join(', ') : value}`
+    ).join('\n');
 
-  ctx.replyWithMarkdown(`Проверьте:\n\n${summary}`, Markup.inlineKeyboard([
-    Markup.button.callback('Подтвердить', 'CONFIRM'),
-    Markup.button.callback('Отмена', 'CANCEL')
+  ctx.replyWithMarkdown(`Проверьте информацию перед отправкой:\n\n${summary}`, Markup.inlineKeyboard([
+    Markup.button.callback('✅ Подтвердить', 'CONFIRM'),
+    Markup.button.callback('❌ Отмена', 'CANCEL')
   ]));
 });
 
 bot.action('CONFIRM', async ctx => {
+  const data = ctx.session.data;
   const row = [ctx.from.username, ...steps.map(k =>
-    Array.isArray(ctx.session.data[k]) ? ctx.session.data[k].join(', ') : ctx.session.data[k]
+    Array.isArray(data[k]) ? data[k].join(', ') : data[k]
   )];
+
   await appendRow(row);
 
-  const summary = steps.map(k => {
-    let val = ctx.session.data[k];
-    if (Array.isArray(val)) val = val.join(', ');
-    if (k === 'type') val = typeLabels[val] || val;
-    if (k === 'next') val = nextLabels[ctx.session.data.nextAction] || '';
-    if (k === 'photo') return ''; // Не включаем ссылку на фото в текст, фото будет отправлено отдельно
-    return `*${questions[k]}* ${val}`;
-  }).filter(Boolean).join('\n');
+  const reportText = Object.entries(data)
+    .filter(([key]) => QUESTIONS[key] && key !== 'photoLink')
+    .map(([key, value]) =>
+      `*${QUESTIONS[key]}*: ${Array.isArray(value) ? value.join(', ') : value}`
+    ).join('\n');
 
-  if (ctx.session.data.photoId) {
-    await ctx.telegram.sendPhoto(TARGET_CHAT_ID, ctx.session.data.photoId, {
-      caption: `Новый отчет от @${ctx.from.username}\n\n${summary}`,
-      parse_mode: 'Markdown',
-      message_thread_id: +TARGET_TOPIC_ID
-    });
+  if (data.photoLink) {
+    await ctx.telegram.sendPhoto(
+      TARGET_CHAT_ID,
+      data.photoLink,
+      {
+        caption: `🆕 Новый отчет от @${ctx.from.username}\n\n${reportText}`,
+        parse_mode: 'Markdown',
+        message_thread_id: +TARGET_TOPIC_ID
+      }
+    );
   } else {
-    await ctx.telegram.sendMessage(TARGET_CHAT_ID, `Новый отчет от @${ctx.from.username}\n\n${summary}`, {
-      parse_mode: 'Markdown',
-      message_thread_id: +TARGET_TOPIC_ID
-    });
+    await ctx.telegram.sendMessage(
+      TARGET_CHAT_ID,
+      `🆕 Новый отчет от @${ctx.from.username}\n\n${reportText}`,
+      {
+        parse_mode: 'Markdown',
+        message_thread_id: +TARGET_TOPIC_ID
+      }
+    );
   }
 
-  ctx.reply('Готово!');
+  ctx.reply('Готово! ✅');
 });
 
-bot.action('CANCEL', ctx => ctx.reply('Отмена'));
+bot.action('CANCEL', ctx => ctx.reply('Отмена ❌'));
 
 app.post('/webhook', (req, res) => bot.handleUpdate(req.body, res));
 bot.telegram.setWebhook(WEBHOOK_URL);
