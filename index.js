@@ -172,35 +172,47 @@ bot.action('CONFIRM', async ctx => {
   ];
   await appendRow(row);
 
-  const summary = steps.map(k => {
-    const val = data[k];
-    const value = Array.isArray(val) ? val.join(', ') : val || '-';
-    return `*${QUESTIONS[k]}*: ${value}`;
-  }).join('\n');
+  // Строим текст без поля photo
+  const summary = steps
+    .filter(k => k !== 'photo') // исключаем ссылку
+    .map(k => {
+      const val = data[k];
+      const value = Array.isArray(val) ? val.join(', ') : val || '-';
+      return `*${QUESTIONS[k]}*: ${value}`;
+    }).join('\n');
 
-  if (data.photo) {
-    await ctx.telegram.sendPhoto(
-      TARGET_CHAT_ID,
-      data.photo,
-      {
-        caption: `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
-        parse_mode: 'Markdown',
-        message_thread_id: +TARGET_TOPIC_ID
-      }
-    );
-  } else {
-    await ctx.telegram.sendMessage(
-      TARGET_CHAT_ID,
-      `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
-      {
-        parse_mode: 'Markdown',
-        message_thread_id: +TARGET_TOPIC_ID
-      }
-    );
+  const finalText = `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`;
+
+  try {
+    if (data.photo) {
+      await ctx.telegram.sendPhoto(
+        TARGET_CHAT_ID,
+        data.photo,
+        {
+          caption: finalText,
+          parse_mode: 'Markdown',
+          message_thread_id: +TARGET_TOPIC_ID
+        }
+      );
+    } else {
+      await ctx.telegram.sendMessage(
+        TARGET_CHAT_ID,
+        finalText,
+        {
+          parse_mode: 'Markdown',
+          message_thread_id: +TARGET_TOPIC_ID
+        }
+      );
+    }
+
+    ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
+
+  } catch (error) {
+    console.error('Ошибка при отправке:', error);
+    ctx.reply('❌ Произошла ошибка при отправке отчета.');
   }
-
-  ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
 });
+
 
 bot.action('CANCEL', ctx => ctx.reply('❌ Отправка отменена.'));
 
