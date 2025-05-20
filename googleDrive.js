@@ -3,7 +3,7 @@ const axios = require('axios');
 const path = require('path');
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: 'gcp-credentials.json', // Путь к JSON-ключу сервисного аккаунта
+  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS),
   scopes: ['https://www.googleapis.com/auth/drive']
 });
 
@@ -27,7 +27,6 @@ async function uploadFile(file) {
     }
   });
 
-  // Делаем файл публичным
   await drive.permissions.create({
     fileId: res.data.id,
     requestBody: {
@@ -40,3 +39,4 @@ async function uploadFile(file) {
 }
 
 module.exports = { uploadFile };
+
