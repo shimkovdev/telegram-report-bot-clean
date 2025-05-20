@@ -138,8 +138,17 @@ bot.on(['text', 'photo', 'document'], async ctx => {
 
   if (key === 'photo') {
     const f = ctx.message.photo ? ctx.message.photo.pop() : ctx.message.document;
-    const fileLink = await uploadFile(await ctx.telegram.getFile(f.file_id));
-    ctx.session.data.photo = fileLink;
+    const originalLink = await uploadFile(await ctx.telegram.getFile(f.file_id));
+    
+    // Преобразуем ссылку в прямую ссылку скачивания Google Drive
+    const fileIdMatch = originalLink.match(/\/d\/([^\/]+)/);
+    let directLink = originalLink;
+    if (fileIdMatch && fileIdMatch[1]) {
+      const fileId = fileIdMatch[1];
+      directLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    }
+    
+    ctx.session.data.photo = directLink;
   } else {
     ctx.session.data[key] = ctx.message.text;
   }
@@ -151,7 +160,7 @@ bot.on(['text', 'photo', 'document'], async ctx => {
   const summary = steps.map(k => {
     const val = ctx.session.data[k];
     const value = Array.isArray(val) ? val.join(', ') : val || '-';
-    return `*${escapeMarkdown(QUESTIONS[k])}*: ${escapeMarkdown(value)}`;
+    return `*${QUESTIONS[k]}*: ${value}`;
   }).join('\n');
 
   ctx.replyWithMarkdown(
@@ -172,46 +181,36 @@ bot.action('CONFIRM', async ctx => {
   ];
   await appendRow(row);
 
-  // Строим текст без поля photo
-  const summary = steps
-    .filter(k => k !== 'photo') // исключаем ссылку
-    .map(k => {
-      const val = data[k];
-      const value = Array.isArray(val) ? val.join(', ') : val || '-';
-      return `*${escapeMarkdown(QUESTIONS[k])}*: ${escapeMarkdown(value)}`;
-    }).join('\n');
+  const summary = steps.map(k => {
+    const val = data[k];
+    const value = Array.isArray(val) ? val.join(', ') : val || '-';
+    return `*${QUESTIONS[k]}*: ${value}`;
+  }).join('\n');
 
-  const finalText = `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`;
-
-  try {
-    if (data.photo) {
-      await ctx.telegram.sendPhoto(
-        TARGET_CHAT_ID,
-        data.photo,
-        {
-          caption: finalText,
-          parse_mode: 'Markdown',
-          message_thread_id: +TARGET_TOPIC_ID
-        }
-      );
-    } else {
-      await ctx.telegram.sendMessage(
-        TARGET_CHAT_ID,
-        finalText,
-        {
-          parse_mode: 'Markdown',
-          message_thread_id: +TARGET_TOPIC_ID
-        }
-      );
-    }
-
-    ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
-
-  } catch (error) {
-    console.error('Ошибка при отправке:', error);
-    ctx.reply('❌ Произошла ошибка при отправке отчета.');
+  if (data.photo) {
+    await ctx.telegram.sendPhoto(
+      TARGET_CHAT_ID,
+      data.photo,  // Здесь уже будет прямой линк
+      {
+        caption: `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
+        parse_mode: 'Markdown',
+        message_thread_id: +TARGET_TOPIC_ID
+      }
+    );
+  } else {
+    await ctx.telegram.sendMessage(
+      TARGET_CHAT_ID,
+      `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
+      {
+        parse_mode: 'Markdown',
+        message_thread_id: +TARGET_TOPIC_ID
+      }
+    );
   }
+
+  ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
 });
+
 
 
 bot.action('CANCEL', ctx => ctx.reply('❌ Отправка отменена.'));
