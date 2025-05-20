@@ -178,17 +178,33 @@ bot.action('CONFIRM', async ctx => {
     return `*${QUESTIONS[k]}*: ${value}`;
   }).join('\n');
 
-  await ctx.telegram.sendMessage(
-    TARGET_CHAT_ID,
-    `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
-    {
-      parse_mode: 'Markdown',
-      message_thread_id: +TARGET_TOPIC_ID
-    }
-  );
+  const options = {
+    parse_mode: 'Markdown',
+    message_thread_id: +TARGET_TOPIC_ID
+  };
+
+  if (data.photo && data.photo.includes('drive.google.com')) {
+    // Фото — просто ссылка, не файл → отправляем обычным сообщением
+    await ctx.telegram.sendMessage(TARGET_CHAT_ID, `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`, options);
+  } else if (data.photo && data.photo.mime_type && data.photo.mime_type.startsWith('image/')) {
+    // Если будет добавлена прямая загрузка изображения — можно использовать sendPhoto с file_id
+  } else {
+    // В будущем можно добавить sendDocument
+  }
+
+  // Дополнительно: если файл — документ, а не картинка
+  if (data.photo && data.photo.startsWith('http')) {
+    // просто прикрепим ссылку дополнительно (на всякий случай)
+    await ctx.telegram.sendMessage(
+      TARGET_CHAT_ID,
+      `📎 *Файл*: [Открыть](${data.photo})`,
+      { ...options, disable_web_page_preview: false }
+    );
+  }
 
   ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
 });
+
 
 bot.action('CANCEL', ctx => ctx.reply('❌ Отправка отменена.'));
 
