@@ -19,10 +19,11 @@ const MANAGERS = [ '@alice','@bob','@charlie' ];
 bot.start(ctx => {
   ctx.session.data = {};
   ctx.session.step = 0;
-  ctx.reply('Добро пожаловать! Нажмите:', Markup.inlineKeyboard(
-    Markup.button.callback('Добавить отчет','NEXT')
-  ));
+  ctx.reply('Добро пожаловать! Нажмите:', Markup.inlineKeyboard([
+    [Markup.button.callback('Добавить отчет', 'NEXT')]
+  ]));
 });
+
 
 bot.action('NEXT', ctx => { ctx.answerCbQuery(); askStep(ctx); });
 
@@ -30,11 +31,11 @@ function askStep(ctx) {
   const idx = ctx.session.step;
   const key = steps[idx];
   if (key === 'managers') {
-    return ctx.reply('Выберите менеджеров:', Markup.inlineKeyboard(
-      MANAGERS.map(m=>Markup.button.callback(m,m)).concat(
-      Markup.button.callback('Готово','DONE_MAN')
-    ),{columns:2}));
-  }
+  return ctx.reply('Выберите менеджеров:', Markup.inlineKeyboard([
+    ...MANAGERS.map(m => [Markup.button.callback(m, m)]),
+    [Markup.button.callback('Готово', 'DONE_MAN')]
+  ]));
+}
   if (key==='type') return ctx.reply('Тип выезда:', Markup.inlineKeyboard([
     Markup.button.callback('Результативный','TYPE_success'),
     Markup.button.callback('Без результата','TYPE_no'),
