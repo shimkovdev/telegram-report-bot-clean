@@ -24,7 +24,7 @@ const steps = [
   'contractor', 'contacts', 'report', 'structures', 'timeline', 'next', 'photo'
 ];
 
-const MANAGERS = ['@alice', '@bob', '@charlie'];
+const MANAGERS = ['@Aura_t', '@linaspirinaa', '@DumchevaKat', '@OlgaKlimovaBerbex', '@Shebichka', '@mari_afimina', '@marshmallooow', '@Lyubov_berbex'];
 
 const QUESTIONS = {
   managers: '👤 Менеджеры',
