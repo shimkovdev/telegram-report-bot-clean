@@ -122,7 +122,7 @@ bot.action(/TYPE_.+/, ctx => {
 bot.action(/NEXT_.+/, ctx => {
   ctx.session.data.next = {
     NEXT_lead: 'Создать лид',
-    NEXT_pause: 'Паузу'
+    NEXT_pause: 'В Менопаузу'
   }[ctx.match[0]];
   ctx.answerCbQuery();
   next(ctx);
@@ -192,7 +192,7 @@ bot.action('CONFIRM', async ctx => {
       TARGET_CHAT_ID,
       data.photo,  // Здесь уже будет прямой линк
       {
-        caption: `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
+        caption: `📢 *Новый отчет: Поиск объектов: от @${ctx.from.username}:*\n\n${summary}`,
         parse_mode: 'Markdown',
         message_thread_id: +TARGET_TOPIC_ID
       }
