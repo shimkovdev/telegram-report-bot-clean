@@ -211,6 +211,9 @@ bot.action('CONFIRM', async ctx => {
   ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
 });
 
+app.get('/', (req, res) => {
+  res.send('✅ Bot is alive');
+});
 
 
 bot.action('CANCEL', ctx => ctx.reply('❌ Отправка отменена.'));
