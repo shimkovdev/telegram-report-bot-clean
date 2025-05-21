@@ -182,17 +182,20 @@ bot.action('CONFIRM', async ctx => {
   await appendRow(row);
 
   const summary = steps.map(k => {
-    const val = data[k];
-    const value = Array.isArray(val) ? val.join(', ') : val || '-';
-    return `*${QUESTIONS[k]}*: ${value}`;
-  }).join('\n');
+  const val = data[k];
+  const value = Array.isArray(val)
+    ? val.map(v => escapeMarkdown(v)).join(', ')
+    : escapeMarkdown(val || '-');
+  return `*${escapeMarkdown(QUESTIONS[k])}*: ${value}`;
+}).join('\n');
+
 
   if (data.photo) {
     await ctx.telegram.sendPhoto(
       TARGET_CHAT_ID,
       data.photo,  // Здесь уже будет прямой линк
       {
-        caption: `📢 *Новый отчет: Поиск объектов: от @${ctx.from.username}:*\n\n${summary}`,
+        caption: `📢 *Новый отчет: Поиск объектов: от @${escapeMarkdown(ctx.from.username)}:*\n\n${summary}`,
         parse_mode: 'Markdown',
         message_thread_id: +TARGET_TOPIC_ID
       }
@@ -200,7 +203,7 @@ bot.action('CONFIRM', async ctx => {
   } else {
     await ctx.telegram.sendMessage(
       TARGET_CHAT_ID,
-      `📢 *Новый отчет от @${ctx.from.username}:*\n\n${summary}`,
+      `📢 *Новый отчет: Поиск объектов: от @${escapeMarkdown(ctx.from.username)}:*\n\n${summary}`,
       {
         parse_mode: 'Markdown',
         message_thread_id: +TARGET_TOPIC_ID
