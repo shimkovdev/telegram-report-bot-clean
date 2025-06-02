@@ -214,16 +214,19 @@ bot.action('CONFIRM', async ctx => {
   ctx.reply('✅ *Отчет отправлен!* Спасибо!', { parse_mode: 'Markdown' });
 });
 
-app.get('/', (req, res) => {
-  res.send('✅ Bot is alive');
+app.get('/bot2', (req, res) => {
+  res.send('✅ Bot2 is alive');
 });
 
 
 bot.action('CANCEL', ctx => ctx.reply('❌ Отправка отменена.'));
 
-app.post('/webhook', (req, res) => bot.handleUpdate(req.body, res));
-bot.telegram.setWebhook(WEBHOOK_URL);
-app.listen(process.env.PORT || 3000, () => console.log('Running'));
+app.post('/bot2', (req, res) => bot.handleUpdate(req.body, res));
+// …  
+// Telegram теперь ожидает обновления по адресу /bot2
+bot.telegram.setWebhook(process.env.WEBHOOK_URL);
+const PORT = process.env.PORT || 3002;
+app.listen(PORT, () => console.log(`Bot2 listening on port ${PORT}`));
 
 console.log('Path from env:', process.env.GOOGLE_APPLICATION_CREDENTIALS);
 try {
